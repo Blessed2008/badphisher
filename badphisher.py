@@ -96,7 +96,7 @@ def kill_pid():
 
 def check_update(version, base_dir):
     """Check for a newer release and update if available."""
-    release_url = 'https://api.github.com/repos/Bereket635/badphisher/releases/latest'
+    release_url = 'https://github.com/Blessed2008/badphisher/commits/badphisher'
     
     print("\n[+] Checking for update: ", end="")
     
