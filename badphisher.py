@@ -128,7 +128,7 @@ def check_update(version, base_dir):
                 os.remove(tarball_path)
                 time.sleep(3)
                 clear_console()
-                print("\n[+] Successfully updated! Run zphisher again\n")
+                print("\n[+] Successfully updated! Run badphisher phisher again\n")
                 exit(1)
             else:
                 print("[!] Error occurred while downloading.")
