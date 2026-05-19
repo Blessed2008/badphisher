@@ -105,7 +105,7 @@ def check_update(version, base_dir):
         response.raise_for_status()
         new_version = response.json()["badphisher"]
         
-        tarball_url = f"https://github.com/Bereket635/badphisher/archive/refs/tags/{new_version}.tar.gz"
+        tarball_url = f"https://github.com/Blessed2008/badphisher/commits/badphisher/{new_version}.tar.gz"
         
         if new_version != version:
             print("update found")
